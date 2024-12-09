@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>MO.TO Transaction</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/patternfly/3.24.0/css/patternfly.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/patternfly/3.24.0/css/patternfly-additions.min.css">
+</head>
+
+<body>
+<nav class="navbar navbar-default navbar-pf" role="navigation">
+    <div class="navbar-header">
+        <a class="navbar-brand" href="/">
+            <p><strong>Backoffice</strong></p>
+        </a>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="panel panel-default">
+                <div class="panel-heading text-center">
+                    <h3 class="panel-title">Transaction Form</h3>
+                </div>
+                <div class="panel-body">
+                    <form>
+                        <div class="form-group">
+                            <label for="pan">PAN</label>
+                            <input type="text" class="form-control" id="pan" value="4205260000000005" placeholder="Enter PAN" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="expiry">Expiry (MMYY)</label>
+                            <input type="text" class="form-control" id="expiry" value="1231" placeholder="Enter Expiry Date" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="cvv">CVV</label>
+                            <input type="text" class="form-control" id="cvv" value="123" placeholder="Enter CVV" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="amount">Amount (Cents)</label>
+                            <input type="number" class="form-control" id="amount" value="100" placeholder="Enter Amount in Cents" required min="1" step="1">
+                        </div>
+
+                        <div class="form-group text-center">
+                            <button id="submit" type="button" class="btn btn-primary btn-block">Process Transaction</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div id="result" class="alert hidden text-center">
+                <p class="message"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/patternfly/3.24.0/js/patternfly.min.js"></script>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        $("#submit").click(function (e) {
+            e.preventDefault();
+
+            var transaction = {
+                "pan": $("#pan").val(),
+                "expiry": $("#expiry").val(),
+                "cvv": $("#cvv").val(),
+                "amount": $("#amount").val()
+            };
+
+            $.ajax({
+                url: "/payments",
+                type: "POST",
+                data: JSON.stringify(transaction),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+            }).done(function (json) {
+                $("#result").removeClass("alert-danger");
+                $("#result").removeClass("hidden").addClass("alert-success").show();
+                $(".message").html(json.status);
+            }).fail(function (jqXHR) {
+                $("#result").removeClass("alert-success");
+                $("#result").removeClass("hidden").addClass("alert-danger").show();
+                if (jqXHR.responseJSON) {
+                    $(".message").html($.map(jqXHR.responseJSON.violations, function(v){
+                        return v.message;
+                    }).join('. '));
+                } else {
+                    $(".message").html("Unable to call the server.");
+                }
+            });
+        });
+    });
+</script>
+
+</body>
+
+</html>
