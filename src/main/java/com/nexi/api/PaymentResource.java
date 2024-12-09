@@ -2,22 +2,23 @@ package com.nexi.api;
 
 import com.nexi.iso.MotoAuthorizationRequest;
 import com.nexi.iso8583.extension.runtime.ISOSerializer;
+import com.nexi.iso8583.extension.runtime.InvalidCreditCardPanException;
 import com.nexi.model.OperationResponse;
 import com.nexi.model.PaymentRequest;
 import com.nexi.services.AuthorizationGateway;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.ext.ExceptionMapper;
+import jakarta.ws.rs.ext.Provider;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
-import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 
@@ -25,6 +26,8 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
 
 @Path("/payments")
 public class PaymentResource {
@@ -78,5 +81,19 @@ public class PaymentResource {
                         .build()
         );
         return Response.ok(new OperationResponse(LocalDateTime.now(), "OK")).build();
+    }
+
+
+    @Provider
+    public static class InvalidCreditCardLuhnViolationExceptionMapper implements ExceptionMapper<InvalidCreditCardPanException> {
+
+        @Override
+        public Response toResponse(InvalidCreditCardPanException exception) {
+            return Response.ok(
+                    Map.of("violations", List.of(
+                            Map.of("field", "moto.paymentRequest.pan", "message", exception.getMessage())
+                    ))
+            ).status(Response.Status.BAD_REQUEST).build();
+        }
     }
 }
