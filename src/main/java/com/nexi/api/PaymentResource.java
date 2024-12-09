@@ -3,9 +3,12 @@ package com.nexi.api;
 import com.nexi.iso.MotoAuthorizationRequest;
 import com.nexi.iso8583.extension.runtime.ISOSerializer;
 import com.nexi.iso8583.extension.runtime.InvalidCreditCardPanException;
+import com.nexi.model.MerchantCategoryCodes;
 import com.nexi.model.OperationResponse;
 import com.nexi.model.PaymentRequest;
 import com.nexi.services.AuthorizationGateway;
+import com.nexi.services.SequenceService;
+import com.nexi.utils.RRNUtil;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
@@ -34,10 +37,12 @@ public class PaymentResource {
 
     public static final String ISO_DATE_TIME_FORMAT = "yyMMddHHmmss";
     private final AuthorizationGateway authorizationGateway;
+    private final SequenceService sequenceService;
 
     @Inject
-    public PaymentResource(AuthorizationGateway authorizationGateway) {
+    public PaymentResource(AuthorizationGateway authorizationGateway, SequenceService sequenceService) {
         this.authorizationGateway = authorizationGateway;
+        this.sequenceService = sequenceService;
     }
 
     @POST
@@ -63,11 +68,12 @@ public class PaymentResource {
             )
     })
     public Response moto(@Valid PaymentRequest paymentRequest) {
+        String stan = sequenceService.getNextValueFromSequence();
         authorizationGateway.pay(
                 MotoAuthorizationRequest.builder()
                         .pan(paymentRequest.getPan())
                         .amount(paymentRequest.getAmount().toString())
-                        .stan("12345")
+                        .stan(stan)
                         .localTransactionDateTime(
                                 OffsetDateTime
                                         .now(ZoneId.systemDefault())
@@ -76,8 +82,8 @@ public class PaymentResource {
                         .expirationDate(paymentRequest.getExpiry())
                         .functionCode("100")
                         .messageReasonCode("1510")
-                        .merchantCategoryCode("123")
-                        .retrievalReferenceNumber(ISOSerializer.rrnGenerate())
+                        .merchantCategoryCode(MerchantCategoryCodes.MISCELLANEOUS_STORES)
+                        .retrievalReferenceNumber(RRNUtil.of(stan))
                         .build()
         );
         return Response.ok(new OperationResponse(LocalDateTime.now(), "OK")).build();
