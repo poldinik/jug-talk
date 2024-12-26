@@ -2,9 +2,7 @@ package com.nexi.iso;
 
 
 import com.nexi.iso8583.extension.runtime.ISO8583Version;
-import com.nexi.iso8583.extension.runtime.ISOCompositeField;
 import com.nexi.iso8583.extension.runtime.ISOField;
-import com.nexi.iso8583.extension.runtime.ISOSubField;
 import com.nexi.iso8583.extension.runtime.LuhnCheckDigit;
 import com.nexi.iso8583.extension.runtime.MessageOriginDomain;
 import com.nexi.iso8583.extension.runtime.messages.AuthorizationRequest;
