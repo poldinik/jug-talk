@@ -46,9 +46,6 @@ public class MotoAuthorizationRequest {
     @ISOField(fieldNumber = 26)
     private String merchantCategoryCode;
 
-//    @ISOField(fieldNumber = 37)
-//    private String retrievalReferenceNumber;
-
     public MotoAuthorizationRequest(MotoAuthorizationRequestBuilder builder) {
         this.pan = builder.pan;
         this.amount = builder.amount;
@@ -59,7 +56,10 @@ public class MotoAuthorizationRequest {
         this.functionCode = builder.functionCode;
         this.messageReasonCode = builder.messageReasonCode;
         this.merchantCategoryCode = builder.merchantCategoryCode;
-       // this.retrievalReferenceNumber = builder.retrievalReferenceNumber;
+    }
+
+    public static MotoAuthorizationRequestBuilder builder() {
+        return new MotoAuthorizationRequestBuilder();
     }
 
     public String getPan() {
@@ -134,14 +134,6 @@ public class MotoAuthorizationRequest {
         this.merchantCategoryCode = merchantCategoryCode;
     }
 
-//    public String getRetrievalReferenceNumber() {
-//        return retrievalReferenceNumber;
-//    }
-//
-//    public void setRetrievalReferenceNumber(String retrievalReferenceNumber) {
-//        this.retrievalReferenceNumber = retrievalReferenceNumber;
-//    }
-
     public static class MotoAuthorizationRequestBuilder {
 
         private String pan;
@@ -153,7 +145,6 @@ public class MotoAuthorizationRequest {
         private String functionCode;
         private String messageReasonCode;
         private String merchantCategoryCode;
-        //private String retrievalReferenceNumber;
 
         public MotoAuthorizationRequestBuilder pan(String pan) {
             this.pan = pan;
@@ -200,18 +191,9 @@ public class MotoAuthorizationRequest {
             return this;
         }
 
-//        public MotoAuthorizationRequestBuilder retrievalReferenceNumber(String retrievalReferenceNumber) {
-//            this.retrievalReferenceNumber = retrievalReferenceNumber;
-//            return this;
-//        }
-
         public MotoAuthorizationRequest build() {
             return new MotoAuthorizationRequest(this);
         }
 
-    }
-
-    public static MotoAuthorizationRequestBuilder builder() {
-        return new MotoAuthorizationRequestBuilder();
     }
 }
