@@ -46,8 +46,8 @@ public class MotoAuthorizationRequest {
     @ISOField(fieldNumber = 26)
     private String merchantCategoryCode;
 
-    @ISOField(fieldNumber = 37)
-    private String retrievalReferenceNumber;
+//    @ISOField(fieldNumber = 37)
+//    private String retrievalReferenceNumber;
 
     public MotoAuthorizationRequest(MotoAuthorizationRequestBuilder builder) {
         this.pan = builder.pan;
@@ -59,7 +59,7 @@ public class MotoAuthorizationRequest {
         this.functionCode = builder.functionCode;
         this.messageReasonCode = builder.messageReasonCode;
         this.merchantCategoryCode = builder.merchantCategoryCode;
-        this.retrievalReferenceNumber = builder.retrievalReferenceNumber;
+       // this.retrievalReferenceNumber = builder.retrievalReferenceNumber;
     }
 
     public String getPan() {
@@ -134,13 +134,13 @@ public class MotoAuthorizationRequest {
         this.merchantCategoryCode = merchantCategoryCode;
     }
 
-    public String getRetrievalReferenceNumber() {
-        return retrievalReferenceNumber;
-    }
-
-    public void setRetrievalReferenceNumber(String retrievalReferenceNumber) {
-        this.retrievalReferenceNumber = retrievalReferenceNumber;
-    }
+//    public String getRetrievalReferenceNumber() {
+//        return retrievalReferenceNumber;
+//    }
+//
+//    public void setRetrievalReferenceNumber(String retrievalReferenceNumber) {
+//        this.retrievalReferenceNumber = retrievalReferenceNumber;
+//    }
 
     public static class MotoAuthorizationRequestBuilder {
 
@@ -153,7 +153,7 @@ public class MotoAuthorizationRequest {
         private String functionCode;
         private String messageReasonCode;
         private String merchantCategoryCode;
-        private String retrievalReferenceNumber;
+        //private String retrievalReferenceNumber;
 
         public MotoAuthorizationRequestBuilder pan(String pan) {
             this.pan = pan;
@@ -200,10 +200,10 @@ public class MotoAuthorizationRequest {
             return this;
         }
 
-        public MotoAuthorizationRequestBuilder retrievalReferenceNumber(String retrievalReferenceNumber) {
-            this.retrievalReferenceNumber = retrievalReferenceNumber;
-            return this;
-        }
+//        public MotoAuthorizationRequestBuilder retrievalReferenceNumber(String retrievalReferenceNumber) {
+//            this.retrievalReferenceNumber = retrievalReferenceNumber;
+//            return this;
+//        }
 
         public MotoAuthorizationRequest build() {
             return new MotoAuthorizationRequest(this);
