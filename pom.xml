@@ -30,6 +30,15 @@
     </dependencyManagement>
 
     <dependencies>
+<!--        <dependency>-->
+<!--            <groupId>com.nexi.npg</groupId>-->
+<!--            <artifactId>npg-blockchain-bootstrap-rest-deployment</artifactId>-->
+<!--            <version>999-SNAPSHOT</version>-->
+<!--        </dependency>-->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest-client-jackson</artifactId>
+        </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-rest-qute</artifactId>
