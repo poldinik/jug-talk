@@ -14,7 +14,7 @@ import org.jboss.resteasy.reactive.ClientWebApplicationException;
 
 import java.util.Map;
 
-@Path("/paypal")
+//@Path("/paypal")
 public class PayPalResource {
 
     @Inject

@@ -2,20 +2,30 @@ package com.nexi.services;
 
 import com.nexi.iso.MotoAuthorizationRequest;
 import com.nexi.iso8583.extension.runtime.ISOSerializer;
+import com.nexi.iso8583.extension.runtime.InvalidCreditCardPanException;
 import com.nexi.utils.IsoPrinter;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import org.jpos.iso.ISOException;
 import org.jpos.iso.ISOMsg;
 import org.jpos.iso.ISOUtil;
 import org.jpos.iso.packager.ISO93APackager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @ApplicationScoped
 public class AuthorizationGateway {
 
+    private static final Logger LOG = LoggerFactory.getLogger(AuthorizationGateway.class.getName());
     private static final String RESET = "\u001B[0m";
     private static final String MTI_COLOR = "\u001B[96m";
     private static final String BITMAP_COLOR = "\u001B[94m";
@@ -30,33 +40,71 @@ public class AuthorizationGateway {
         this.isoSerializer = isoSerializer;
     }
 
-    public void pay(MotoAuthorizationRequest motoAuthorizationRequest) {
-        byte[] packed = isoSerializer.serialize(motoAuthorizationRequest, new ISO93APackager());
-        ISOMsg msg = IsoPrinter.msg(packed);
-//        String bitMap = bitMap(msg);
-//        Log.infof("BitMap: %s\n", bitMap);
-//        Log.info("https://www.rapidtables.com/convert/number/hex-to-binary.html?x=" + bitMap);
-//        Log.info("https://paymentcardtools.com/iso-8583-bitmap");
-//        String strMsg = IsoPrinter.printMsgColored(msg);
-//        Log.info("Sent Authorization Request: \n\n" + new String(packed, StandardCharsets.UTF_8) + "\n" + strMsg);
-//
-//        String colored = colorPackedMessage(msg);
-//
-//        Log.info("Sent Authorization Request: \n\n" + colored);
+    public static void logFields(ISOMsg msg) throws ISOException {
+        for (int i = 2; i <= 128; i++) {
+            if (msg.hasField(i)) {
+                String value = msg.getString(i);
+                if (value == null) continue;
 
-        try {
-            logAuthorizationRequest(packed, msg);
-        } catch (ISOException e) {
-            throw new RuntimeException(e);
+                String colored;
+                if (i % 3 == 0)
+                    colored = DE_COLOR_1 + value + RESET;
+                else if (i % 3 == 1)
+                    colored = DE_COLOR_2 + value + RESET;
+                else
+                    colored = DE_COLOR_3 + value + RESET;
+
+                Log.infof("DE%02d: %s", i, colored);
+            }
         }
     }
 
-    public static void logAuthorizationRequest(byte[] packed, ISOMsg msg) throws ISOException {
+    public static void printPrimaryBitmapMatrix(ISOMsg msg) {
+        byte[] bitmapBytes = new byte[16];
+        for (int i = 1; i <= 128; i++) {
+            if (msg.hasField(i)) {
+                int byteIndex = (i - 1) / 8;
+                int bitIndex = 7 - ((i - 1) % 8);
+                bitmapBytes[byteIndex] |= (1 << bitIndex);
+            }
+        }
+
+        for (int row = 0; row < 8; row++) { // prime 8 righe = primary bitmap
+            int b = bitmapBytes[row] & 0xFF;
+            for (int col = 7; col >= 0; col--) {
+                System.out.print((b >> col) & 0x01);
+            }
+            System.out.println();
+        }
+    }
+
+    public void pay(MotoAuthorizationRequest motoAuthorizationRequest) {
+        try {
+            byte[] packed = isoSerializer.serialize(motoAuthorizationRequest, new ISO93APackager());
+            ISOMsg msg = IsoPrinter.msg(packed);
+            logAuthorizationRequest(msg);
+        } catch (InvalidCreditCardPanException e) {
+            LOG.error("Error paying authorization request", e);
+            Map<String, Object> responseBody = buildViolations(e);
+            throw new WebApplicationException(
+                    Response.status(Response.Status.BAD_REQUEST)
+                            .entity(responseBody)
+                            .type(MediaType.APPLICATION_JSON)
+                            .build()
+            );
+        }
+    }
+
+    public void logAuthorizationRequest(ISOMsg msg) {
         StringBuilder sb = new StringBuilder();
         String bitMapHex = bitMap(msg);
 
         sb.append("\n==================== ISO 8583 MESSAGE ====================\n");
-        sb.append("MTI: ").append(MTI_COLOR).append(msg.getMTI()).append(RESET).append("\n");
+        try {
+            sb.append("MTI: ").append(MTI_COLOR).append(msg.getMTI()).append(RESET).append("\n");
+        } catch (ISOException e) {
+            throw new RuntimeException(e);
+        }
         sb.append("Bitmap (hex): ").append(BITMAP_COLOR).append(bitMapHex).append(RESET).append("\n");
         sb.append("Primary bitmap (binary, 8x8):\n");
 
@@ -111,26 +159,19 @@ public class AuthorizationGateway {
         Log.info(sb.toString());
     }
 
+    private Map<String, Object> buildViolations(InvalidCreditCardPanException e) {
+        Map<String, String> violation = new HashMap<>();
+        violation.put("field", "moto.paymentRequest.pan");
+        violation.put("message", e.getMessage()); // il messaggio di violazione
 
-    public static void logFields(ISOMsg msg) throws ISOException {
-        for (int i = 2; i <= 128; i++) {
-            if (msg.hasField(i)) {
-                String value = msg.getString(i);
-                if (value == null) continue;
-
-                String colored;
-                if (i % 3 == 0)
-                    colored = DE_COLOR_1 + value + RESET;
-                else if (i % 3 == 1)
-                    colored = DE_COLOR_2 + value + RESET;
-                else
-                    colored = DE_COLOR_3 + value + RESET;
-
-                Log.infof("DE%02d: %s", i, colored);
-            }
-        }
+        List<Map<String, String>> violations = new ArrayList<>();
+        violations.add(violation);
+        Map<String, Object> responseBody = new HashMap<>();
+        responseBody.put("title", "Constraint Violation");
+        responseBody.put("status", 400);
+        responseBody.put("violations", violations);
+        return responseBody;
     }
-
 
     private static String bitMap(ISOMsg msg) {
         byte[] bitmapBytes = new byte[16];
@@ -144,28 +185,6 @@ public class AuthorizationGateway {
 
         return ISOUtil.hexString(bitmapBytes);
     }
-
-    public static void printPrimaryBitmapMatrix(ISOMsg msg) {
-        byte[] bitmapBytes = new byte[16];
-        for (int i = 1; i <= 128; i++) {
-            if (msg.hasField(i)) {
-                int byteIndex = (i - 1) / 8;
-                int bitIndex = 7 - ((i - 1) % 8);
-                bitmapBytes[byteIndex] |= (1 << bitIndex);
-            }
-        }
-
-        for (int row = 0; row < 8; row++) { // prime 8 righe = primary bitmap
-            int b = bitmapBytes[row] & 0xFF;
-            for (int col = 7; col >= 0; col--) {
-                System.out.print((b >> col) & 0x01);
-            }
-            System.out.println();
-        }
-    }
-
-
-
 
     public static String colorPackedMessage(ISOMsg msg) {
         StringBuilder sb = new StringBuilder();
