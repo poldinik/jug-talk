@@ -83,7 +83,6 @@ public class PaymentResource {
                         .functionCode("100")
                         .messageReasonCode("1510")
                         .merchantCategoryCode(MerchantCategoryCodes.MISCELLANEOUS_STORES)
-                       // .retrievalReferenceNumber(RRNUtil.of(stan))
                         .build()
         );
         return Response.ok(new OperationResponse(LocalDateTime.now(), "OK")).build();
